@@ -1,7 +1,8 @@
-#define PA "Elpapuh"
-#define PV "1.6"
+//Stropy
 #define PN "Hide and Seek [NPDU]" //NPDU = No plugins dependencies update
+#define PA "Elpapuh"
 #define PDESC "Play a better hide and seek mode in tf2 jailbreak server"
+#define PV "1.6.5"
 #define PURL "https://forums.alliedmods.net/showthread.php?t=300720"
 
 public Plugin myinfo = 
@@ -22,27 +23,82 @@ public Plugin myinfo =
 #include <morecolors>
 #include <smlib>
 #include <tf2jail>
+#include <tf2_advanced>
 
 new Handle:StartSearchTimer = INVALID_HANDLE;
-new Handle:FreezeReds = INVALID_HANDLE;
+new Handle:FreezeTimer = INVALID_HANDLE;
+new Handle:HP = INVALID_HANDLE;
+new Handle:HP1 = INVALID_HANDLE;
+new Handle:HP2 = INVALID_HANDLE;
+new Handle:HP3 = INVALID_HANDLE;
+new Handle:HP4 = INVALID_HANDLE;
+new Handle:HP5 = INVALID_HANDLE;
+new Handle:NoUber = INVALID_HANDLE;
 
 new bool:g_bLateLoad = false;
 new bool:g_bFallDamage = false;
 
+public TF2Jail_OnLastRequestExecute(const String:Handler[])
+{	
+
+	if (StrEqual(Handler, "PlayHAS"))
+	{
+		ServerCommand("sm_freeze @blue 29");
+		
+		TF2Jail_ManageCells(OPEN);
+		
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i) && IsPlayerAlive(i))
+			{
+				switch (GetClientTeam(i))
+				{
+				
+					case TFTeam_Red:
+					{
+						CPrintToChat(i, "{haunted}[{magenta}HideAndSeek{haunted}] {orange}You have to hide faster as you can, before you get 'tired'");
+					}
+				
+					case TFTeam_Blue:
+					{
+						TF2_SetPlayerPowerPlay(i, true);
+						CPrintToChat(i, "{haunted}[{magenta}HideAndSeek{haunted}] {orange}You have to catch (kill) reds before round ends");
+					}
+				}
+			}
+		}
+		ClearTimer(StartSearchTimer);
+		ClearTimer(FreezeTimer);
+		ClearTimer(HP);
+		ClearTimer(HP1);
+		ClearTimer(HP2);
+		ClearTimer(HP3);
+		ClearTimer(HP4);
+		ClearTimer(HP5);
+		ClearTimer(NoUber);
+		StartSearchTimer = CreateTimer(30.0, StunReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		FreezeTimer = CreateTimer(60.0, FreezeReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		HP = CreateTimer(4.0, MuchHp, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		HP1 = CreateTimer(9.0, MuchHp1, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		HP2 = CreateTimer(14.0, MuchHp2, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		HP3 = CreateTimer(19.0, MuchHp3, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		HP4 = CreateTimer(24.0, MuchHp4, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		HP5 = CreateTimer(29.0, MuchHp5, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		NoUber = CreateTimer(30.0, NoUbers, INVALID_HANDLE, TIMER_REPEAT);
+	}
+}
+
 public OnPluginStart()
 {
 	HookEvent("teamplay_round_win", RoundEnd);
+	CreateDirectory("cfg/sourcemod/haseek", 3);
 }
 
 public OnMapStart()
 {
 	PrecacheSound("haseek/start.wav", true);
-	PrecacheSound("haseek/die.wav", true);
-	PrecacheSound("haseek/die2.wav", true);
 	
 	AddFileToDownloadsTable("sound/haseek/start.wav");
-	AddFileToDownloadsTable("sound/haseek/die.wav");
-	AddFileToDownloadsTable("sound/haseek/die2.wav");
 }
 
 public OnConfigsExecuted()
@@ -65,99 +121,135 @@ public OnClientPutInServer(client)
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
-public TF2Jail_OnLastRequestExecute(const String:Handler[])
+public Action:NoUbers(Handle:hTimer)
 {
-
-	TF2Jail_ManageCells(OPEN);
-	
-	HookEvent("player_death", OnPlayerDie, EventHookMode_Post);
-
-	if (StrEqual(Handler, "PlayHAS"))
+	NoUber = INVALID_HANDLE;
+	for (new i = 1; i <= MaxClients; i++)
 	{
-		ServerCommand("sm_freeze @blue 29");
-		for (new i = 1; i <= MaxClients; i++)
+		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			if (IsClientInGame(i) && IsPlayerAlive(i))
+			switch (GetClientTeam(i))
 			{
-				switch (GetClientTeam(i))
+				case TFTeam_Red: 
 				{
-				
-					case TFTeam_Red:
-					{
-						TF2Jail_StripToMelee(i);
-						TF2_SetPlayerClass(i, TFClass_Scout);
-						EmitSoundToClient(i, "haseek/start.wav");
-					}
-				
-					case TFTeam_Blue:
-					{
-						TF2_SetPlayerPowerPlay(i, true);
-					}
+				TF2_SetPlayerUberLevel(i, 1);
 				}
 			}
 		}
-		ClearTimer(StartSearchTimer);
-		StartSearchTimer = CreateTimer(30.0, StunReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
 	}
-	
-	CreateTimer(5.0, PowerPlay);
-	CreateTimer(10.0, PowerPlays);
-	CreateTimer(15.0, PowerPlayss);
-	CreateTimer(20.0, PowerPlaysss);
-	CreateTimer(23.0, PowerPlayssss);
 }
 
-public Action:PowerPlay(Handle timer)
+public Action:MuchHp(Handle:hTimer)
 {
+	HP = INVALID_HANDLE;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == _:TFTeam_Blue)
+		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			TF2_SetPlayerPowerPlay(i, true);
+			switch (GetClientTeam(i))
+			{
+				case TFTeam_Blue: 
+				{
+				SetEntityHealth(i, 500);
+				TF2_SetPlayerPowerPlay(i, true);
+				}
+			}
 		}
 	}
 }
 
-public Action:PowerPlays(Handle timer)
+public Action:MuchHp1(Handle:hTimer)
 {
+	HP1 = INVALID_HANDLE;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == _:TFTeam_Blue)
+		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			TF2_SetPlayerPowerPlay(i, true);
+			switch (GetClientTeam(i))
+			{
+				case TFTeam_Blue: 
+				{
+				SetEntityHealth(i, 500);
+				TF2_SetPlayerPowerPlay(i, true);
+				}
+			}
 		}
 	}
 }
 
-public Action:PowerPlayss(Handle timer)
+
+public Action:MuchHp2(Handle:hTimer)
 {
+	HP2 = INVALID_HANDLE;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == _:TFTeam_Blue)
+		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			TF2_SetPlayerPowerPlay(i, true);
+			switch (GetClientTeam(i))
+			{
+				case TFTeam_Blue: 
+				{
+				SetEntityHealth(i, 500);
+				TF2_SetPlayerPowerPlay(i, true);
+				}
+			}
 		}
 	}
 }
 
-public Action:PowerPlaysss(Handle timer)
+public Action:MuchHp3(Handle:hTimer)
 {
+	HP3 = INVALID_HANDLE;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == _:TFTeam_Blue)
+		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			TF2_SetPlayerPowerPlay(i, true);
+			switch (GetClientTeam(i))
+			{
+				case TFTeam_Blue: 
+				{
+				SetEntityHealth(i, 500);
+				TF2_SetPlayerPowerPlay(i, true);
+				}
+			}
 		}
 	}
 }
 
-public Action:PowerPlayssss(Handle timer)
+public Action:MuchHp4(Handle:hTimer)
 {
+	HP4 = INVALID_HANDLE;
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == _:TFTeam_Blue)
+		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
-			TF2_SetPlayerPowerPlay(i, true);
+			switch (GetClientTeam(i))
+			{
+				case TFTeam_Blue: 
+				{
+				SetEntityHealth(i, 500);
+				TF2_SetPlayerPowerPlay(i, true);
+				}
+			}
+		}
+	}
+}
+
+public Action:MuchHp5(Handle:hTimer)
+{
+	HP5 = INVALID_HANDLE;
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i))
+		{
+			switch (GetClientTeam(i))
+			{
+				case TFTeam_Blue: 
+				{
+				SetEntityHealth(i, 500);
+				TF2_SetPlayerPowerPlay(i, true);
+				}
+			}
 		}
 	}
 }
@@ -173,38 +265,39 @@ public Action:StunReds(Handle:hTimer)
 			{
 				case TFTeam_Red: 
 				{
-				TF2_StunPlayer(i, 99999.0, 0.90, TF_STUNFLAG_SLOWDOWN, 0);
-				TF2_SetPlayerPowerPlay(i, false);
+				TF2_SetPlayerSpeed(i, Float:100);
+				CPrintToChat(i, "{gray}[{orange}HideAndSeek{gray}] {red}You got stunned, your speed has been slowed");
 				}
 				
 				case TFTeam_Blue: 
 				{
-				SetEntityHealth(i, 300);
+				CPrintToChat(i, "{gray}[{orange}HideAndSeek{gray}] {cyan}Reds got stunned, their speed has been slowed");
 				}
 			}
 		}
 	}
-	ClearTimer(FreezeReds);
-	FreezeReds = CreateTimer(60.0, StartFreezeReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public Action:StartFreezeReds(Handle:hTimer)
+public Action:FreezeReds(Handle:hTimer)
 {
-	FreezeReds = INVALID_HANDLE;
+	FreezeTimer = INVALID_HANDLE;
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i))
 		{
 			switch (GetClientTeam(i))
 			{
-				case TFTeam_Red:
+				case TFTeam_Red: 
 				{
-					ServerCommand("sm_freeze @red -1");
+				TF2_SetPlayerSpeed(i, Float:1);
+				EmitSoundToClient(i, "haseek/start.wav");
+				SetEntityHealth(i, 1);
+				CPrintToChat(i, "{gray}[{orange}HideAndSeek{gray}] {red}You're tired, so..., you can't move");
 				}
 				
 				case TFTeam_Blue:
 				{
-					TF2_SetPlayerPowerPlay(i, false);
+				CPrintToChat(i, "{red}[{gray}HideAndSeek{red}] {orange}Reds are tired, so..., they can't move");
 				}
 			}
 		}
@@ -214,9 +307,15 @@ public Action:StartFreezeReds(Handle:hTimer)
 public RoundEnd(Handle:hEvent, const String:strName[], bool:bBroadcast)
 {
 	ClearTimer(StartSearchTimer);
-	ClearTimer(FreezeReds);
-	ClearTimer(StartSearchTimer);
-	
+	ClearTimer(FreezeTimer);
+	ClearTimer(HP);
+	ClearTimer(HP1);
+	ClearTimer(HP2);
+	ClearTimer(HP3);
+	ClearTimer(HP4);
+	ClearTimer(HP5);
+	ClearTimer(NoUber);
+		
 	g_bFallDamage = false;
 }
 
@@ -239,24 +338,4 @@ stock ClearTimer(&Handle:timer)
 	}
 }
 
-public Action OnPlayerDie(Handle event, const char[] name, bool dontBroadcast)
-{	
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Red:
-				{
-					EmitSoundToClient(i, "haseek/die.wav");
-				}
-				
-				case TFTeam_Blue:
-				{
-					EmitSoundToClient(i, "haseek/die2.wav");
-				}
-			}
-		}
-	}	
-}
+//Stropy

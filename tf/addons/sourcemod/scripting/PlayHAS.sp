@@ -2,7 +2,7 @@
 #define PN "Hide and Seek [NPDU]" //NPDU = No plugins dependencies update
 #define PA "Elpapuh"
 #define PDESC "Play a better hide and seek mode in tf2 jailbreak server"
-#define PV "1.6.5"
+#define PV "1.6.7"
 #define PURL "https://forums.alliedmods.net/showthread.php?t=300720"
 
 public Plugin myinfo = 

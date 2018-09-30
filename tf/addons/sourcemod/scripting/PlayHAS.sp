@@ -2,7 +2,7 @@
 #define PN "Hide and Seek [NPDU]" //NPDU = No plugins dependencies update
 #define PA "Elpapuh"
 #define PDESC "Play a better hide and seek mode in tf2 jailbreak server"
-#define PV "1.6.7"
+#define PV "1.7"
 #define PURL "https://forums.alliedmods.net/showthread.php?t=300720"
 
 public Plugin myinfo = 
@@ -26,27 +26,27 @@ public Plugin myinfo =
 #include <tf2_advanced>
 
 new Handle:StartSearchTimer = INVALID_HANDLE;
+new Handle:RestoreSpeed = INVALID_HANDLE;
 new Handle:FreezeTimer = INVALID_HANDLE;
-new Handle:HP = INVALID_HANDLE;
-new Handle:HP1 = INVALID_HANDLE;
-new Handle:HP2 = INVALID_HANDLE;
-new Handle:HP3 = INVALID_HANDLE;
-new Handle:HP4 = INVALID_HANDLE;
-new Handle:HP5 = INVALID_HANDLE;
-new Handle:NoUber = INVALID_HANDLE;
 
 new bool:g_bLateLoad = false;
 new bool:g_bFallDamage = false;
+
+public OnPluginStart()
+{
+	HookEvent("teamplay_round_win", RoundEnd);
+}
+	
 
 public TF2Jail_OnLastRequestExecute(const String:Handler[])
 {	
 
 	if (StrEqual(Handler, "PlayHAS"))
 	{
-		ServerCommand("sm_freeze @blue 29");
+	
+		ServerCommand("sm_freeze @blue 45");
 		
 		TF2Jail_ManageCells(OPEN);
-		
 		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i) && IsPlayerAlive(i))
@@ -56,42 +56,25 @@ public TF2Jail_OnLastRequestExecute(const String:Handler[])
 				
 					case TFTeam_Red:
 					{
-						CPrintToChat(i, "{haunted}[{magenta}HideAndSeek{haunted}] {orange}You have to hide faster as you can, before you get 'tired'");
+						CPrintToChat(i, "{haunted}[{magenta}HideAndSeek{haunted}] {orange}You have to hide faster as you can, before you get 'tired' Haha");
+						TF2_RemoveWeaponSlot(i, 0);
+						TF2_RemoveWeaponSlot(i, 1);
 					}
 				
 					case TFTeam_Blue:
 					{
-						TF2_SetPlayerPowerPlay(i, true);
-						CPrintToChat(i, "{haunted}[{magenta}HideAndSeek{haunted}] {orange}You have to catch (kill) reds before round ends");
+						CPrintToChat(i, "{haunted}[{magenta}HideAndSeek{haunted}] {orange}You have to catch (kill) reds before round ends Helouda");
 					}
 				}
 			}
 		}
 		ClearTimer(StartSearchTimer);
+		ClearTimer(RestoreSpeed);
 		ClearTimer(FreezeTimer);
-		ClearTimer(HP);
-		ClearTimer(HP1);
-		ClearTimer(HP2);
-		ClearTimer(HP3);
-		ClearTimer(HP4);
-		ClearTimer(HP5);
-		ClearTimer(NoUber);
-		StartSearchTimer = CreateTimer(30.0, StunReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		FreezeTimer = CreateTimer(60.0, FreezeReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		HP = CreateTimer(4.0, MuchHp, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		HP1 = CreateTimer(9.0, MuchHp1, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		HP2 = CreateTimer(14.0, MuchHp2, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		HP3 = CreateTimer(19.0, MuchHp3, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		HP4 = CreateTimer(24.0, MuchHp4, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		HP5 = CreateTimer(29.0, MuchHp5, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
-		NoUber = CreateTimer(30.0, NoUbers, INVALID_HANDLE, TIMER_REPEAT);
+		StartSearchTimer = CreateTimer(50.0, StunReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		RestoreSpeed = CreateTimer(65.0, RSpeed, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
+		FreezeTimer = CreateTimer(80.0, FreezeReds, INVALID_HANDLE, TIMER_FLAG_NO_MAPCHANGE);
 	}
-}
-
-public OnPluginStart()
-{
-	HookEvent("teamplay_round_win", RoundEnd);
-	CreateDirectory("cfg/sourcemod/haseek", 3);
 }
 
 public OnMapStart()
@@ -121,139 +104,6 @@ public OnClientPutInServer(client)
 	SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
-public Action:NoUbers(Handle:hTimer)
-{
-	NoUber = INVALID_HANDLE;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Red: 
-				{
-				TF2_SetPlayerUberLevel(i, 1);
-				}
-			}
-		}
-	}
-}
-
-public Action:MuchHp(Handle:hTimer)
-{
-	HP = INVALID_HANDLE;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Blue: 
-				{
-				SetEntityHealth(i, 500);
-				TF2_SetPlayerPowerPlay(i, true);
-				}
-			}
-		}
-	}
-}
-
-public Action:MuchHp1(Handle:hTimer)
-{
-	HP1 = INVALID_HANDLE;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Blue: 
-				{
-				SetEntityHealth(i, 500);
-				TF2_SetPlayerPowerPlay(i, true);
-				}
-			}
-		}
-	}
-}
-
-
-public Action:MuchHp2(Handle:hTimer)
-{
-	HP2 = INVALID_HANDLE;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Blue: 
-				{
-				SetEntityHealth(i, 500);
-				TF2_SetPlayerPowerPlay(i, true);
-				}
-			}
-		}
-	}
-}
-
-public Action:MuchHp3(Handle:hTimer)
-{
-	HP3 = INVALID_HANDLE;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Blue: 
-				{
-				SetEntityHealth(i, 500);
-				TF2_SetPlayerPowerPlay(i, true);
-				}
-			}
-		}
-	}
-}
-
-public Action:MuchHp4(Handle:hTimer)
-{
-	HP4 = INVALID_HANDLE;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Blue: 
-				{
-				SetEntityHealth(i, 500);
-				TF2_SetPlayerPowerPlay(i, true);
-				}
-			}
-		}
-	}
-}
-
-public Action:MuchHp5(Handle:hTimer)
-{
-	HP5 = INVALID_HANDLE;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case TFTeam_Blue: 
-				{
-				SetEntityHealth(i, 500);
-				TF2_SetPlayerPowerPlay(i, true);
-				}
-			}
-		}
-	}
-}
-
 public Action:StunReds(Handle:hTimer)
 {
 	StartSearchTimer = INVALID_HANDLE;
@@ -278,6 +128,25 @@ public Action:StunReds(Handle:hTimer)
 	}
 }
 
+public Action:RSpeed(Handle:hTimer)
+{
+	RestoreSpeed = INVALID_HANDLE;
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsPlayerAlive(i))
+		{
+			switch (GetClientTeam(i))
+			{
+				case TFTeam_Red: 
+				{
+				TF2_SetPlayerDefaultSpeed(i);
+				CPrintToChat(i, "{gray}[{orange}HideAndSeek{gray}] {red}Your energy have been restored");
+				}
+			}
+		}
+	}
+}
+
 public Action:FreezeReds(Handle:hTimer)
 {
 	FreezeTimer = INVALID_HANDLE;
@@ -289,7 +158,7 @@ public Action:FreezeReds(Handle:hTimer)
 			{
 				case TFTeam_Red: 
 				{
-				TF2_SetPlayerSpeed(i, Float:1);
+				TF2_SetPlayerSpeed(i, Float:800);
 				EmitSoundToClient(i, "haseek/start.wav");
 				SetEntityHealth(i, 1);
 				CPrintToChat(i, "{gray}[{orange}HideAndSeek{gray}] {red}You're tired, so..., you can't move");
@@ -301,20 +170,19 @@ public Action:FreezeReds(Handle:hTimer)
 				}
 			}
 		}
+		
+		if (TF2_GetPlayerClass(i) == TFClass_Medic && TF2_GetClientTeam(i) == TFTeam_Red)
+		{
+			TF2_SetPlayerClass(i, TFClass_Spy);
+		}
 	}
 }
 
 public RoundEnd(Handle:hEvent, const String:strName[], bool:bBroadcast)
 {
 	ClearTimer(StartSearchTimer);
+	ClearTimer(RestoreSpeed);
 	ClearTimer(FreezeTimer);
-	ClearTimer(HP);
-	ClearTimer(HP1);
-	ClearTimer(HP2);
-	ClearTimer(HP3);
-	ClearTimer(HP4);
-	ClearTimer(HP5);
-	ClearTimer(NoUber);
 		
 	g_bFallDamage = false;
 }

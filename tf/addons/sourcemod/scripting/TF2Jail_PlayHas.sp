@@ -1,8 +1,8 @@
 //Stropy
-#define PN "Hide and Seek [NPDU]" //NPDU = No plugins dependencies update
+#define PN "TF2 Jail - Hide And Seek]" //NPDU = No plugins dependencies update
 #define PA "Elpapuh"
 #define PDESC "Play a better hide and seek mode in tf2 jailbreak server"
-#define PV "1.7"
+#define PV "1.7.2"
 #define PURL "https://forums.alliedmods.net/showthread.php?t=300720"
 
 public Plugin myinfo = 
@@ -16,6 +16,9 @@ public Plugin myinfo =
 
 #pragma semicolon 1
 
+#define DEBUG 
+#define UPDATE_URL	"https://jlovers.ml/plugins/playhas.txt"
+
 #include <sourcemod>
 #include <sdkhooks>
 #include <tf2_stocks>
@@ -24,6 +27,7 @@ public Plugin myinfo =
 #include <smlib>
 #include <tf2jail>
 #include <tf2_advanced>
+#include <updater>
 
 new Handle:StartSearchTimer = INVALID_HANDLE;
 new Handle:RestoreSpeed = INVALID_HANDLE;
@@ -35,8 +39,19 @@ new bool:g_bFallDamage = false;
 public OnPluginStart()
 {
 	HookEvent("teamplay_round_win", RoundEnd);
+	if (LibraryExists("updater"))
+    {
+        Updater_AddPlugin(UPDATE_URL);
+    }
 }
-	
+
+public OnLibraryAdded(const String:name[])
+{
+    if (StrEqual(name, "updater"))
+    {
+        Updater_AddPlugin(UPDATE_URL);
+    }
+}
 
 public TF2Jail_OnLastRequestExecute(const String:Handler[])
 {	
@@ -47,6 +62,7 @@ public TF2Jail_OnLastRequestExecute(const String:Handler[])
 		ServerCommand("sm_freeze @blue 45");
 		
 		TF2Jail_ManageCells(OPEN);
+		
 		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i) && IsPlayerAlive(i))
@@ -80,8 +96,14 @@ public TF2Jail_OnLastRequestExecute(const String:Handler[])
 public OnMapStart()
 {
 	PrecacheSound("haseek/start.wav", true);
+	PrecacheSound("haseek/blue.wav", true);
+	PrecacheSound("haseek/red.wav", true);
+	//PreCacheSound("haseek/dieunknown.wav, true");
 	
 	AddFileToDownloadsTable("sound/haseek/start.wav");
+	AddFileToDownloadsTable("sound/haseek/blue.wav");
+	AddFileToDownloadsTable("sound/haseek/red.wav");
+	PrintToServer("The plugin is running the latest version");
 }
 
 public OnConfigsExecuted()
@@ -183,7 +205,7 @@ public RoundEnd(Handle:hEvent, const String:strName[], bool:bBroadcast)
 	ClearTimer(StartSearchTimer);
 	ClearTimer(RestoreSpeed);
 	ClearTimer(FreezeTimer);
-		
+	
 	g_bFallDamage = false;
 }
 
